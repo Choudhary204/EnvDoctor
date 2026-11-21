@@ -1,0 +1,62 @@
+{
+  "name": "@choudhary204/env-doctor",
+  "version": "1.0.0",
+  "description": "A smart environment configuration diagnostic tool — scan, validate, diagnose, and report issues in .env files before they cause problems.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "default": "./src/index.js"
+    }
+  },
+  "bin": {
+    "env-doctor": "./bin/cli.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "node --check src/**/*.js bin/cli.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "env",
+    "dotenv",
+    "environment",
+    "diagnostics",
+    "validation",
+    "security",
+    "configuration",
+    "cli",
+    "health-check",
+    "devtools"
+  ],
+  "author": "Sonu Choudhary (https://github.com/Choudhary204)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Choudhary204/env-doctor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Choudhary204/env-doctor/issues"
+  },
+  "homepage": "https://github.com/Choudhary204/env-doctor#readme",
+  "files": [
+    "bin/",
+    "src/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.0",
+    "vitest": "^2.1.0"
+  }
+}

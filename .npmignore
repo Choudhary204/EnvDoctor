@@ -1,0 +1,11 @@
+node_modules/
+coverage/
+.nyc_output/
+test/
+examples/
+*.test.js
+.github/
+.gitignore
+*.md
+!README.md
+
