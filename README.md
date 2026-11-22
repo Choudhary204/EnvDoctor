@@ -2,14 +2,28 @@
 
 > Smart environment configuration diagnostics for Node.js applications.
 
-[![CI](https://github.com/Choudhary204/env-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/Choudhary204/env-doctor/actions)
-[![npm version](https://badge.fury.io/js/env-doctor.svg)](https://www.npmjs.com/package/env-doctor)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Online%20Playground-38bdf8?style=for-the-badge&logo=googlechrome&logoColor=white)](https://choudhary204.github.io/EnvDoctor/)
+[![npm version](https://img.shields.io/npm/v/@choudhary204/env-doctor.svg?color=cb3837&logo=npm)](https://www.npmjs.com/package/@choudhary204/env-doctor)
+[![CI](https://github.com/Choudhary204/EnvDoctor/actions/workflows/ci.yml/badge.svg)](https://github.com/Choudhary204/EnvDoctor/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](package.json)
 
 EnvDoctor scans, validates, diagnoses, and reports issues in your `.env` files **before** they cause application crashes, deployment failures, or security problems.
 
 Think of it as a **health-check system for your environment configuration**.
+
+---
+
+## 🌐 Live Interactive Demo
+
+Try EnvDoctor directly in your browser with zero installation:
+
+👉 **[https://choudhary204.github.io/EnvDoctor/](https://choudhary204.github.io/EnvDoctor/)**
+
+- ⚡ **Interactive Diagnostics:** Test health score grading (0–100, A–F) with immediate feedback.
+- 🔒 **Zero Data Leakage:** 100% client-side — your secrets never leave your browser.
+- 📄 **.env.example Generator:** Create safe template files instantly with one click.
+- 📊 **Multi-Env Comparator:** Side-by-side diffing between development, staging, and production.
 
 ---
 
@@ -42,10 +56,10 @@ Think of it as a **health-check system for your environment configuration**.
 
 ```bash
 # As a local dependency
-npm install env-doctor
+npm install @choudhary204/env-doctor
 
 # Or globally for CLI use
-npm install -g env-doctor
+npm install -g @choudhary204/env-doctor
 ```
 
 ---
@@ -55,52 +69,52 @@ npm install -g env-doctor
 ### Quick health check
 
 ```bash
-npx env-doctor check
-npx env-doctor check --file .env.production
-npx env-doctor check --format json
-npx env-doctor check --format json --output report.json
-npx env-doctor check --verbose
+npx @choudhary204/env-doctor check
+npx @choudhary204/env-doctor check --file .env.production
+npx @choudhary204/env-doctor check --format json
+npx @choudhary204/env-doctor check --format json --output report.json
+npx @choudhary204/env-doctor check --verbose
 ```
 
 ### Scan (alias for check)
 
 ```bash
-npx env-doctor scan --file .env.staging
+npx @choudhary204/env-doctor scan --file .env.staging
 ```
 
 ### Compare environment files
 
 ```bash
 # Compare .env.development against .env.production
-npx env-doctor compare .env.development .env.production
+npx @choudhary204/env-doctor compare .env.development .env.production
 
 # Compare with explicit base
-npx env-doctor compare --base .env.development .env.production .env.test
+npx @choudhary204/env-doctor compare --base .env.development .env.production .env.test
 ```
 
 ### Security check
 
 ```bash
-npx env-doctor security
-npx env-doctor security --file .env.production
-npx env-doctor security --format json
+npx @choudhary204/env-doctor security
+npx @choudhary204/env-doctor security --file .env.production
+npx @choudhary204/env-doctor security --format json
 ```
 
 ### Generate .env.example
 
 ```bash
-npx env-doctor generate-example
-npx env-doctor generate-example --file .env.production --output .env.example
-npx env-doctor generate-example --overwrite
+npx @choudhary204/env-doctor generate-example
+npx @choudhary204/env-doctor generate-example --file .env.production --output .env.example
+npx @choudhary204/env-doctor generate-example --overwrite
 ```
 
 ### Full report
 
 ```bash
-npx env-doctor report                        # HTML (default)
-npx env-doctor report --format json
-npx env-doctor report --format terminal
-npx env-doctor report --output custom.html
+npx @choudhary204/env-doctor report                        # HTML (default)
+npx @choudhary204/env-doctor report --format json
+npx @choudhary204/env-doctor report --format terminal
+npx @choudhary204/env-doctor report --output custom.html
 ```
 
 ### CLI options

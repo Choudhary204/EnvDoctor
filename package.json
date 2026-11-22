@@ -17,7 +17,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "node --check src/**/*.js bin/cli.js"
+    "lint": "node --check src/**/*.js bin/cli.js",
+    "demo": "node server.js"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -38,12 +39,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Choudhary204/env-doctor.git"
+    "url": "git+https://github.com/Choudhary204/EnvDoctor.git"
   },
   "bugs": {
-    "url": "https://github.com/Choudhary204/env-doctor/issues"
+    "url": "https://github.com/Choudhary204/EnvDoctor/issues"
   },
-  "homepage": "https://github.com/Choudhary204/env-doctor#readme",
+  "homepage": "https://choudhary204.github.io/EnvDoctor/",
   "files": [
     "bin/",
     "src/",

@@ -1,0 +1,1755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EnvDoctor Playground — Live Interactive Environment Diagnostics</title>
+  <meta name="description" content="Online interactive demo and health-check system for .env configuration files. Scans, validates types, detects weak secrets, generates .env.example, and scores environment health." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩺</text></svg>">
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-card: #0f172a;
+      --bg-card-subtle: #162036;
+      --bg-input: #0b1120;
+      --border: #223049;
+      --border-focus: #3b82f6;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.15);
+      --green: #22c55e;
+      --green-bg: rgba(34, 197, 94, 0.12);
+      --yellow: #f59e0b;
+      --yellow-bg: rgba(245, 158, 11, 0.12);
+      --red: #ef4444;
+      --red-bg: rgba(239, 68, 68, 0.12);
+      --blue: #3b82f6;
+      --blue-bg: rgba(59, 130, 246, 0.12);
+      --purple: #a855f7;
+      --purple-bg: rgba(168, 85, 247, 0.12);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /* Top Navigation */
+    header {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-container {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0.9rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .brand-icon {
+      font-size: 1.8rem;
+      line-height: 1;
+    }
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+    .brand-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: var(--blue-bg);
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.45rem 0.9rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 0.825rem;
+      font-weight: 600;
+      transition: all 0.15s ease;
+      text-decoration: none !important;
+    }
+    .nav-btn:hover {
+      background: #1e2d4d;
+      border-color: #3b82f6;
+      color: #fff;
+    }
+    .nav-btn-primary {
+      background: #2563eb;
+      border-color: #3b82f6;
+      color: #fff;
+    }
+    .nav-btn-primary:hover {
+      background: #1d4ed8;
+      box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);
+    }
+
+    /* Sub-header banner */
+    .security-banner {
+      background: linear-gradient(90deg, rgba(34, 197, 94, 0.08) 0%, rgba(56, 189, 248, 0.08) 100%);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.15);
+      padding: 0.45rem 1rem;
+      font-size: 0.8rem;
+      text-align: center;
+      color: #93c5fd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      max-width: 1300px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    /* Tabs */
+    .tab-bar {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 0.75rem 1.25rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .tab-btn:hover {
+      color: var(--text);
+    }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* Tab Panes */
+    .tab-pane {
+      display: none;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+
+    /* Grid Layout for Diagnostics */
+    .diag-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 992px) {
+      .diag-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      position: relative;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Presets toolbar */
+    .preset-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .pill-btn {
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.3rem 0.65rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .pill-btn:hover, .pill-btn.active {
+      background: #1e2d4d;
+      color: #fff;
+      border-color: var(--border-focus);
+    }
+
+    /* Code Editor Box */
+    .editor-wrapper {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+    .editor-textarea {
+      width: 100%;
+      height: 380px;
+      background: var(--bg-input);
+      color: #e2e8f0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      resize: vertical;
+      white-space: pre;
+      tab-size: 2;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .editor-textarea:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+
+    /* Collapsible Configuration Options */
+    .config-details {
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.85rem 1rem;
+      margin-bottom: 1rem;
+    }
+    .config-details summary {
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #94a3b8;
+      user-select: none;
+    }
+    .config-details summary:hover {
+      color: #fff;
+    }
+    .config-content {
+      padding-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .input-label {
+      font-size: 0.775rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+      display: block;
+    }
+    .text-input {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 0.825rem;
+      padding: 0.5rem 0.75rem;
+      outline: none;
+    }
+    .text-input:focus {
+      border-color: var(--border-focus);
+    }
+
+    /* Actions row */
+    .actions-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .file-upload-label {
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      border: 1px dashed var(--border);
+      padding: 0.45rem 0.75rem;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .file-upload-label:hover {
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    /* Right Column: Score & Findings */
+    .score-hero {
+      background: linear-gradient(135deg, #131d36 0%, #0d1527 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .gauge-wrapper {
+      position: relative;
+      width: 110px;
+      height: 110px;
+      flex-shrink: 0;
+    }
+    .gauge-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+    .gauge-bg {
+      fill: none;
+      stroke: #1e293b;
+      stroke-width: 8;
+    }
+    .gauge-fill {
+      fill: none;
+      stroke: var(--green);
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-dasharray: 283;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 0.6s ease, stroke 0.4s ease;
+    }
+    .gauge-content {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .gauge-number {
+      font-size: 1.75rem;
+      font-weight: 800;
+      line-height: 1;
+      color: #fff;
+    }
+    .gauge-grade {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
+
+    .hero-stats {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+    }
+    @media (max-width: 600px) {
+      .score-hero {
+        flex-direction: column;
+        text-align: center;
+      }
+      .hero-stats {
+        grid-template-columns: repeat(2, 1fr);
+        width: 100%;
+      }
+    }
+    .stat-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-sm);
+      padding: 0.65rem 0.5rem;
+      text-align: center;
+    }
+    .stat-val {
+      font-size: 1.4rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+    .stat-lbl {
+      font-size: 0.675rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 0.2rem;
+    }
+
+    /* Findings List */
+    .filter-bar {
+      display: flex;
+      gap: 0.4rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .filter-chip {
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s;
+    }
+    .filter-chip.active {
+      background: #1e293b;
+      color: #fff;
+      border-color: #3b82f6;
+    }
+
+    .findings-container {
+      max-height: 380px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding-right: 0.25rem;
+    }
+    .finding-item {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-left-width: 4px;
+      border-radius: 6px;
+      padding: 0.75rem 0.9rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      font-size: 0.85rem;
+    }
+    .finding-item.error {
+      border-left-color: var(--red);
+    }
+    .finding-item.warning {
+      border-left-color: var(--yellow);
+    }
+    .finding-item.pass {
+      border-left-color: var(--green);
+    }
+    .finding-item.info {
+      border-left-color: var(--blue);
+    }
+
+    .finding-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+    .badge-error { background: var(--red-bg); color: #f87171; }
+    .badge-warning { background: var(--yellow-bg); color: #fbbf24; }
+    .badge-pass { background: var(--green-bg); color: #4ade80; }
+    .badge-info { background: var(--blue-bg); color: #60a5fa; }
+
+    .finding-body {
+      flex: 1;
+    }
+    .finding-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.2rem;
+    }
+    .finding-key {
+      font-weight: 700;
+      color: #fff;
+    }
+    .finding-code {
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+    }
+    .finding-line {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+    }
+    .finding-msg {
+      color: #cbd5e1;
+      font-size: 0.825rem;
+    }
+
+    /* Fixes list */
+    .fixes-box {
+      background: #0f1c33;
+      border: 1px solid #1e3a66;
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      margin-top: 1.5rem;
+    }
+    .fixes-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #93c5fd;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.6rem;
+    }
+    .fixes-ol {
+      margin-left: 1.25rem;
+      font-size: 0.825rem;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    /* Score breakdown table */
+    .breakdown-box {
+      margin-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1rem;
+    }
+    .breakdown-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .breakdown-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    .breakdown-table th, .breakdown-table td {
+      padding: 0.4rem 0.5rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .breakdown-table td.num {
+      text-align: right;
+    }
+
+    /* Export toolbar */
+    .export-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* Generator and Comparator Panes */
+    .two-col-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 850px) {
+      .two-col-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Code Block styling */
+    pre.code-block {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      color: #e2e8f0;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: #1e293b;
+      border: 1px solid #3b82f6;
+      color: #fff;
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      z-index: 999;
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      background: #090e1a;
+      padding: 2rem 1.5rem;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      margin-top: 3rem;
+    }
+    .footer-container {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header>
+    <div class="nav-container">
+      <div class="brand">
+        <span class="brand-icon">🩺</span>
+        <div>
+          <span class="brand-title">EnvDoctor</span>
+          <span class="brand-badge">Playground</span>
+        </div>
+      </div>
+      <div class="nav-links">
+        <a href="https://www.npmjs.com/package/@choudhary204/env-doctor" target="_blank" rel="noopener" class="nav-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M0 0v24h24V0H0zm19.4 19.4h-3.4V7.6h-4.3v11.8H4.6V4.6h14.8v14.8z"/></svg>
+          npm @choudhary204/env-doctor
+        </a>
+        <a href="https://github.com/Choudhary204/EnvDoctor" target="_blank" rel="noopener" class="nav-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Security guarantee banner -->
+  <div class="security-banner">
+    <span>🔒 <strong>Security First:</strong> All diagnostics run 100% in your browser. Secrets and .env values never leave your device.</span>
+  </div>
+
+  <main>
+    <!-- Tab Controls -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('diagnostics')">🩺 Diagnostics & Score</button>
+      <button class="tab-btn" onclick="switchTab('generator')">📄 .env.example Generator</button>
+      <button class="tab-btn" onclick="switchTab('comparator')">📊 Diff / Comparator</button>
+      <button class="tab-btn" onclick="switchTab('cli-guide')">💻 CLI & Library Guide</button>
+    </div>
+
+    <!-- TAB 1: Diagnostics -->
+    <div id="tab-diagnostics" class="tab-pane active">
+      <div class="diag-layout">
+
+        <!-- Left Column: Input & Controls -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">
+              <span>📝</span>
+              <span>.env Editor</span>
+            </span>
+            <div class="preset-toolbar">
+              <span style="font-size: 0.75rem; color: var(--text-dim);">Presets:</span>
+              <button class="pill-btn active" onclick="loadPreset('sample')">Sample Issues</button>
+              <button class="pill-btn" onclick="loadPreset('clean')">Clean (Grade A)</button>
+              <button class="pill-btn" onclick="loadPreset('critical')">Critical (Grade F)</button>
+              <button class="pill-btn" onclick="loadPreset('empty')">Empty</button>
+            </div>
+          </div>
+
+          <div class="editor-wrapper">
+            <textarea id="envInput" class="editor-textarea" spellcheck="false" placeholder="Paste your .env file content here..."></textarea>
+          </div>
+
+          <!-- Diagnostic Rules Settings -->
+          <details class="config-details">
+            <summary>⚙️ Validation Rules & Options</summary>
+            <div class="config-content">
+              <div>
+                <label class="input-label" for="requiredKeys">Required Keys (comma-separated):</label>
+                <input id="requiredKeys" type="text" class="text-input" value="PORT, DATABASE_URL, JWT_SECRET" placeholder="PORT, DATABASE_URL, JWT_SECRET" />
+              </div>
+              <div>
+                <label class="input-label" for="typeRules">Type & Format Rules (JSON format):</label>
+                <textarea id="typeRules" class="text-input" style="height: 90px; font-family: monospace;" spellcheck="false">
+{
+  "PORT": "port",
+  "DATABASE_URL": "url",
+  "JWT_SECRET": { "type": "string", "minLength": 16 },
+  "DEBUG": "boolean",
+  "NODE_ENV": { "enum": ["development", "production", "test"] },
+  "ADMIN_EMAIL": "email"
+}</textarea>
+              </div>
+            </div>
+          </details>
+
+          <!-- Action bar -->
+          <div class="actions-row">
+            <label class="file-upload-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span>Upload .env file</span>
+              <input type="file" id="fileUpload" style="display: none;" accept=".env,*" onchange="handleFileUpload(event)">
+            </label>
+
+            <button class="nav-btn nav-btn-primary" onclick="runDiagnostics()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              Scan & Diagnose
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Column: Results & Health Score -->
+        <div>
+          <!-- Score Hero Box -->
+          <div class="score-hero">
+            <div class="gauge-wrapper">
+              <svg class="gauge-svg" viewBox="0 0 100 100">
+                <circle class="gauge-bg" cx="50" cy="50" r="45"></circle>
+                <circle id="gaugeFill" class="gauge-fill" cx="50" cy="50" r="45"></circle>
+              </svg>
+              <div class="gauge-content">
+                <span id="scoreNum" class="gauge-number">--</span>
+                <span id="scoreGrade" class="gauge-grade">--</span>
+              </div>
+            </div>
+            <div class="hero-stats">
+              <div class="stat-box">
+                <div id="statVars" class="stat-val">0</div>
+                <div class="stat-lbl">Variables</div>
+              </div>
+              <div class="stat-box">
+                <div id="statPassed" class="stat-val" style="color: var(--green);">0</div>
+                <div class="stat-lbl">Passed</div>
+              </div>
+              <div class="stat-box">
+                <div id="statWarnings" class="stat-val" style="color: var(--yellow);">0</div>
+                <div class="stat-lbl">Warnings</div>
+              </div>
+              <div class="stat-box">
+                <div id="statErrors" class="stat-val" style="color: var(--red);">0</div>
+                <div class="stat-lbl">Errors</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Findings Card -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🔍 Diagnostic Findings</span>
+              <div class="filter-bar">
+                <button class="filter-chip active" onclick="filterFindings('all')">All (<span id="countAll">0</span>)</button>
+                <button class="filter-chip" onclick="filterFindings('error')">Errors (<span id="countErrors">0</span>)</button>
+                <button class="filter-chip" onclick="filterFindings('warning')">Warnings (<span id="countWarnings">0</span>)</button>
+                <button class="filter-chip" onclick="filterFindings('pass')">Pass (<span id="countPass">0</span>)</button>
+              </div>
+            </div>
+
+            <div id="findingsList" class="findings-container">
+              <!-- Dynamically populated findings -->
+            </div>
+
+            <!-- Fixes recommendations -->
+            <div id="fixesContainer" class="fixes-box" style="display: none;">
+              <div class="fixes-title">
+                <span>🛠</span>
+                <span>Suggested Actionable Fixes:</span>
+              </div>
+              <ol id="fixesList" class="fixes-ol"></ol>
+            </div>
+
+            <!-- Itemized Score Breakdown -->
+            <div class="breakdown-box">
+              <div class="breakdown-title">📊 Health Score Breakdown (Cap Rule Enforced)</div>
+              <table class="breakdown-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Count</th>
+                    <th>Rate</th>
+                    <th class="num">Deduction</th>
+                  </tr>
+                </thead>
+                <tbody id="breakdownTbody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Export Toolbar -->
+            <div class="export-bar">
+              <button class="nav-btn" onclick="copyReportJSON()">📋 Copy JSON Report</button>
+              <button class="nav-btn" onclick="copyTerminalReport()">🖥️ Copy Terminal View</button>
+              <button class="nav-btn" onclick="downloadHTMLReport()">💾 Download HTML Report</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 2: Example Generator -->
+    <div id="tab-generator" class="tab-pane">
+      <div class="two-col-layout">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Source .env</span>
+            <button class="nav-btn nav-btn-primary" onclick="generateExampleFromCurrent()">⚡ Generate .env.example</button>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.75rem;">
+            Automatically strips sensitive values and populates sanitized placeholder templates while preserving comments and structure.
+          </p>
+          <textarea id="genSourceInput" class="editor-textarea" style="height: 400px;"></textarea>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Generated .env.example</span>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="nav-btn" onclick="copyExampleOutput()">📋 Copy</button>
+              <button class="nav-btn" onclick="downloadExampleFile()">💾 Download</button>
+            </div>
+          </div>
+          <p style="color: var(--green); font-size: 0.85rem; margin-bottom: 0.75rem;">
+            ✓ Safe to commit to Git. Zero real secrets are exposed.
+          </p>
+          <pre id="exampleOutput" class="code-block" style="height: 400px;"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Comparator -->
+    <div id="tab-comparator" class="tab-pane">
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+          <span class="card-title">Compare Environments (.env diff)</span>
+          <button class="nav-btn nav-btn-primary" onclick="runComparison()">⚡ Compare Files</button>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+          Find keys present in Base (e.g. <code>.env.development</code>) but missing or empty in Target (e.g. <code>.env.production</code>).
+        </p>
+        <div class="two-col-layout">
+          <div>
+            <label class="input-label">Base Environment (e.g. .env.development)</label>
+            <textarea id="compareBase" class="editor-textarea" style="height: 250px;">
+PORT=3000
+DATABASE_URL=postgres://localhost:5432/dev_db
+JWT_SECRET=super_secret_jwt_key_development_32chars
+REDIS_URL=redis://localhost:6379
+DEBUG=true
+API_KEY=dev_key_12345
+DEV_TOOLS=enabled</textarea>
+          </div>
+          <div>
+            <label class="input-label">Target Environment (e.g. .env.production)</label>
+            <textarea id="compareTarget" class="editor-textarea" style="height: 250px;">
+PORT=8080
+DATABASE_URL=postgres://prod-db.aws.internal:5432/main
+JWT_SECRET=prod_secret_production_ready_99999999
+DEBUG=false
+NEW_FEATURE_FLAG=true</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Diff Results</span>
+        </div>
+        <div id="compareResults" class="findings-container" style="max-height: none;">
+          <p style="color: var(--text-dim); font-size: 0.85rem;">Click "Compare Files" to see differences.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: CLI & Library Guide -->
+    <div id="tab-cli-guide" class="tab-pane">
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: #fff;">🚀 Quick Start Guide</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+          Install EnvDoctor in your Node.js projects or run it instantly with npx.
+        </p>
+
+        <h3 style="font-size: 1rem; color: var(--accent); margin-bottom: 0.5rem;">1. Run with npx (No install needed)</h3>
+        <pre class="code-block" style="margin-bottom: 1.5rem;"># Health check your default .env
+npx @choudhary204/env-doctor check
+
+# Check with required variables & custom file
+npx @choudhary204/env-doctor check --file .env.production --required PORT,DATABASE_URL,JWT_SECRET
+
+# Compare development vs production
+npx @choudhary204/env-doctor compare .env.development .env.production
+
+# Generate a safe .env.example
+npx @choudhary204/env-doctor generate-example --file .env --output .env.example</pre>
+
+        <h3 style="font-size: 1rem; color: var(--accent); margin-bottom: 0.5rem;">2. Install as dependency</h3>
+        <pre class="code-block" style="margin-bottom: 1.5rem;"># Install locally
+npm install @choudhary204/env-doctor
+
+# Or install globally for CLI command
+npm install -g @choudhary204/env-doctor</pre>
+
+        <h3 style="font-size: 1rem; color: var(--accent); margin-bottom: 0.5rem;">3. Use in your Node.js code</h3>
+        <pre class="code-block">import { diagnose } from '@choudhary204/env-doctor';
+
+const report = await diagnose({
+  filePath: '.env',
+  required: ['PORT', 'DATABASE_URL', 'JWT_SECRET'],
+  rules: {
+    PORT: 'port',
+    DATABASE_URL: 'url',
+    JWT_SECRET: { type: 'string', minLength: 32 },
+    NODE_ENV: { enum: ['development', 'production', 'test'] },
+    DEBUG: 'boolean',
+  },
+  checkGit: true,
+});
+
+console.log('Health Score:', report.healthScore); // e.g. 95
+console.log('Errors:', report.errors);
+console.log('Fixes:', report.suggestedFixes);</pre>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">Action completed!</div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-container">
+      <div>
+        <strong>EnvDoctor</strong> v1.0.0 · MIT License © EnvDoctor Contributors
+      </div>
+      <div>
+        <a href="https://github.com/Choudhary204/EnvDoctor" target="_blank" rel="noopener">GitHub Repository</a>
+        &nbsp;·&nbsp;
+        <a href="https://www.npmjs.com/package/@choudhary204/env-doctor" target="_blank" rel="noopener">npm Package</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Client-side Diagnostic Engine -->
+  <script>
+    // Presets
+    const PRESETS = {
+      sample: `# Sample .env file with common real-world issues
+PORT=99999
+DATABASE_URL=invalid-db-url
+JWT_SECRET=short
+API_KEY=your_api_key_here
+ADMIN_PASSWORD=admin123
+DEBUG=yes
+NODE_ENV=staging
+EMPTY_VAR=
+DUP_KEY=first_definition
+DUP_KEY=duplicate_value
+`,
+      clean: `# Clean Production-grade Configuration
+PORT=3000
+DATABASE_URL=postgres://user:p4ssw0rd@db.example.com:5432/prod_database
+JWT_SECRET=super_secret_jwt_token_entropy_key_with_at_least_32_characters!
+DEBUG=false
+NODE_ENV=production
+ADMIN_EMAIL=security-team@example.com
+`,
+      critical: `# Highly Vulnerable Configuration
+JWT_SECRET=123
+PASSWORD=admin
+API_KEY=change_me
+PORT=not_a_port
+DATABASE_URL=
+TEST_KEY=todo
+`,
+      empty: ``
+    };
+
+    let currentReport = null;
+    let currentFilter = 'all';
+
+    // Sensitive Key Patterns
+    const SENSITIVE_KEY_PATTERNS = [
+      /secret/i, /password/i, /passwd/i, /api[_-]?key/i,
+      /token/i, /private[_-]?key/i, /auth/i, /credential/i,
+      /cert/i, /jwt/i, /access[_-]?key/i, /encryption/i,
+      /signing/i, /webhook/i, /passphrase/i
+    ];
+
+    const PLACEHOLDER_PATTERNS = [
+      /^your[-_]?.*here$/i, /^change[-_]?me$/i, /^replace[-_]?me$/i,
+      /^todo$/i, /^fixme$/i, /^example$/i, /^test$/i, /^dummy$/i,
+      /^placeholder$/i, /^<[^>]+>$/, /^\[.*\]$/, /^xxx+$/i,
+      /^123456+$/, /^password\d*$/i, /^secret\d*$/i, /^admin\d*$/i,
+      /^default\d*$/i, /^changeit$/i
+    ];
+
+    function isSensitiveKey(key) {
+      return SENSITIVE_KEY_PATTERNS.some(p => p.test(key));
+    }
+
+    function isPlaceholder(val) {
+      return PLACEHOLDER_PATTERNS.some(p => p.test(val.trim()));
+    }
+
+    function shannonEntropy(val) {
+      const freq = {};
+      for (const ch of val) freq[ch] = (freq[ch] || 0) + 1;
+      let h = 0;
+      for (const count of Object.values(freq)) {
+        const p = count / val.length;
+        h -= p * Math.log2(p);
+      }
+      return h;
+    }
+
+    function isWeakSecret(val) {
+      if (val.length < 16) {
+        return { weak: true, reason: `too short (${val.length} chars, minimum 16)` };
+      }
+      const entropy = shannonEntropy(val);
+      if (entropy < 2.5) {
+        return { weak: true, reason: 'low character variety (predictable value)' };
+      }
+      return { weak: false, reason: '' };
+    }
+
+    // .env parser
+    function parseEnv(content) {
+      const lines = content.split(/\r?\n/);
+      const entries = [];
+      const env = {};
+      const keyCount = {};
+      const duplicates = [];
+
+      lines.forEach((line, idx) => {
+        const lineNum = idx + 1;
+        const trimmed = line.trim();
+
+        if (!trimmed) {
+          entries.push({ type: 'blank', line: lineNum, text: line });
+          return;
+        }
+
+        if (trimmed.startsWith('#')) {
+          entries.push({ type: 'comment', line: lineNum, text: line });
+          return;
+        }
+
+        const eqIdx = line.indexOf('=');
+        if (eqIdx === -1) {
+          entries.push({ type: 'malformed', line: lineNum, text: line });
+          return;
+        }
+
+        const rawKey = line.slice(0, eqIdx).trim();
+        const rawVal = line.slice(eqIdx + 1).trim();
+
+        // Strip quotes
+        let val = rawVal;
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        } else {
+          // Strip inline comment
+          const cMatch = val.match(/^(.*?)\s+#.*$/);
+          if (cMatch) val = cMatch[1].trim();
+        }
+
+        keyCount[rawKey] = (keyCount[rawKey] || 0) + 1;
+        if (keyCount[rawKey] === 2) {
+          duplicates.push(rawKey);
+        }
+
+        env[rawKey] = val;
+        entries.push({ type: 'variable', key: rawKey, value: val, line: lineNum, raw: line });
+      });
+
+      return { entries, env, duplicates, keys: Object.keys(env) };
+    }
+
+    // Diagnostics engine
+    function runDiagnosticsEngine(content, requiredList, rules) {
+      const parsed = parseEnv(content);
+      const findings = [];
+      const securityFindings = [];
+
+      // 1. Surface scanner findings
+      parsed.entries.forEach(e => {
+        if (e.type === 'malformed') {
+          findings.push({
+            severity: 'error',
+            code: 'MALFORMED_LINE',
+            key: '',
+            line: e.line,
+            message: `Line ${e.line} is malformed and cannot be parsed: "${e.text.slice(0, 50)}"`
+          });
+        } else if (e.type === 'variable') {
+          if (!e.value) {
+            findings.push({
+              severity: 'warning',
+              code: 'EMPTY_VALUE',
+              key: e.key,
+              line: e.line,
+              message: `${e.key} is defined but has an empty value`
+            });
+          }
+        }
+      });
+
+      // Duplicates
+      parsed.duplicates.forEach(dupKey => {
+        findings.push({
+          severity: 'warning',
+          code: 'DUPLICATE_KEY',
+          key: dupKey,
+          message: `Variable "${dupKey}" is defined multiple times in the file`
+        });
+      });
+
+      // 2. Required variables check
+      requiredList.forEach(k => {
+        const trimmed = k.trim();
+        if (!trimmed) return;
+        if (!(trimmed in parsed.env)) {
+          findings.push({
+            severity: 'error',
+            code: 'MISSING_REQUIRED',
+            key: trimmed,
+            message: `${trimmed} is required but not defined in the environment file`
+          });
+        }
+      });
+
+      // 3. Type & format validations
+      Object.entries(rules).forEach(([key, rule]) => {
+        if (!(key in parsed.env)) return;
+        const val = parsed.env[key];
+        if (!val) return; // Empty value already warned
+
+        const typeName = typeof rule === 'string' ? rule : rule.type;
+
+        if (typeName === 'port') {
+          const num = Number(val);
+          if (!Number.isInteger(num) || num < 1 || num > 65535) {
+            findings.push({
+              severity: 'error',
+              code: 'INVALID_TYPE',
+              key,
+              message: `${key} must be a valid port number (1–65535)`
+            });
+          }
+        } else if (typeName === 'url') {
+          try {
+            new URL(val);
+          } catch {
+            findings.push({
+              severity: 'error',
+              code: 'INVALID_TYPE',
+              key,
+              message: `${key} must be a valid URL`
+            });
+          }
+        } else if (typeName === 'email') {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(val)) {
+            findings.push({
+              severity: 'error',
+              code: 'INVALID_TYPE',
+              key,
+              message: `${key} must be a valid email address`
+            });
+          }
+        } else if (typeName === 'boolean') {
+          const validBools = ['true', 'false', '1', '0', 'yes', 'no'];
+          if (!validBools.includes(val.toLowerCase())) {
+            findings.push({
+              severity: 'error',
+              code: 'INVALID_TYPE',
+              key,
+              message: `${key} must be a boolean (true, false, 1, 0, yes, no)`
+            });
+          }
+        } else if (typeName === 'number') {
+          if (isNaN(Number(val))) {
+            findings.push({
+              severity: 'error',
+              code: 'INVALID_TYPE',
+              key,
+              message: `${key} must be a valid number`
+            });
+          }
+        }
+
+        // Object rules (minLength, maxLength, pattern, enum)
+        if (typeof rule === 'object' && rule !== null) {
+          if (rule.minLength && val.length < rule.minLength) {
+            findings.push({
+              severity: 'error',
+              code: 'MIN_LENGTH_FAILED',
+              key,
+              message: `${key} is too short (length ${val.length}, minimum required is ${rule.minLength})`
+            });
+          }
+          if (rule.maxLength && val.length > rule.maxLength) {
+            findings.push({
+              severity: 'error',
+              code: 'MAX_LENGTH_FAILED',
+              key,
+              message: `${key} is too long (length ${val.length}, maximum allowed is ${rule.maxLength})`
+            });
+          }
+          if (rule.pattern) {
+            const re = new RegExp(rule.pattern);
+            if (!re.test(val)) {
+              findings.push({
+                severity: 'error',
+                code: 'PATTERN_MISMATCH',
+                key,
+                message: `${key} does not match required pattern ${rule.pattern}`
+              });
+            }
+          }
+          if (Array.isArray(rule.enum)) {
+            if (!rule.enum.includes(val)) {
+              findings.push({
+                severity: 'error',
+                code: 'INVALID_ENUM',
+                key,
+                message: `${key} must be one of: ${rule.enum.join(', ')}`
+              });
+            }
+          }
+        }
+      });
+
+      // 4. Security checks
+      parsed.keys.forEach(key => {
+        const val = parsed.env[key];
+        if (!val) return;
+
+        if (isPlaceholder(val)) {
+          const sf = {
+            severity: 'warning',
+            code: 'PLACEHOLDER_VALUE',
+            key,
+            message: `${key} contains a placeholder value. Replace it with a real secret.`
+          };
+          findings.push(sf);
+          securityFindings.push(sf);
+          return;
+        }
+
+        if (isSensitiveKey(key)) {
+          const weakCheck = isWeakSecret(val);
+          if (weakCheck.weak) {
+            const sf = {
+              severity: 'error',
+              code: 'WEAK_SECRET',
+              key,
+              message: `${key} appears to be a weak secret: ${weakCheck.reason}.`
+            };
+            findings.push(sf);
+            securityFindings.push(sf);
+          }
+        }
+      });
+
+      // Add PASS findings for valid variables with no issues
+      parsed.keys.forEach(k => {
+        const hasIssue = findings.some(f => f.key === k && (f.severity === 'error' || f.severity === 'warning'));
+        if (!hasIssue) {
+          findings.push({
+            severity: 'pass',
+            code: 'PASSED',
+            key: k,
+            message: `${k} passed all checks`
+          });
+        }
+      });
+
+      // Calculate health score with documented caps
+      const errors = findings.filter(f => f.severity === 'error').length;
+      const warnings = findings.filter(f => f.severity === 'warning').length;
+      const securityCount = securityFindings.length;
+      const missingRequired = findings.filter(f => f.code === 'MISSING_REQUIRED').length;
+
+      let score = 100;
+      const errorDed = Math.min(errors * 15, 60);
+      const warnDed = Math.min(warnings * 5, 25);
+      const secDed = Math.min(securityCount * 10, 30);
+      const reqDed = Math.min(missingRequired * 10, 20);
+
+      score = Math.max(0, 100 - errorDed - warnDed - secDed - reqDed);
+
+      let grade = 'A';
+      let label = 'Excellent';
+      let color = 'var(--green)';
+
+      if (score >= 90) { grade = 'A'; label = 'Excellent'; color = 'var(--green)'; }
+      else if (score >= 75) { grade = 'B'; label = 'Good'; color = 'var(--blue)'; }
+      else if (score >= 60) { grade = 'C'; label = 'Fair'; color = 'var(--yellow)'; }
+      else if (score >= 40) { grade = 'D'; label = 'Poor'; color = 'var(--red)'; }
+      else { grade = 'F'; label = 'Critical'; color = 'var(--red)'; }
+
+      // Fixes
+      const suggestedFixes = [];
+      findings.filter(f => f.code === 'MISSING_REQUIRED').forEach(f => {
+        suggestedFixes.push(`Add ${f.key} to your environment file.`);
+      });
+      findings.filter(f => f.code === 'PLACEHOLDER_VALUE').forEach(f => {
+        suggestedFixes.push(`Replace the placeholder value of ${f.key} with a real value.`);
+      });
+      findings.filter(f => f.code === 'WEAK_SECRET').forEach(f => {
+        suggestedFixes.push(`Replace weak secret in ${f.key} with a high-entropy secret (>= 16 chars).`);
+      });
+      findings.filter(f => f.code === 'EMPTY_VALUE').forEach(f => {
+        suggestedFixes.push(`Provide a value for ${f.key} or remove it if unused.`);
+      });
+      findings.filter(f => f.code === 'DUPLICATE_KEY').forEach(f => {
+        suggestedFixes.push(`Remove duplicate definition for ${f.key}.`);
+      });
+
+      return {
+        totalVars: parsed.keys.length,
+        passed: findings.filter(f => f.severity === 'pass').length,
+        warnings,
+        errors,
+        healthScore: score,
+        grade,
+        label,
+        color,
+        findings,
+        securityFindings,
+        suggestedFixes,
+        scoreBreakdown: {
+          errors: { count: errors, deduction: -errorDed },
+          warnings: { count: warnings, deduction: -warnDed },
+          security: { count: securityCount, deduction: -secDed },
+          missingRequired: { count: missingRequired, deduction: -reqDed },
+          final: score
+        },
+        env: parsed.env,
+        keys: parsed.keys,
+        entries: parsed.entries
+      };
+    }
+
+    // UI Orchestration
+    function runDiagnostics() {
+      const content = document.getElementById('envInput').value;
+      const reqStr = document.getElementById('requiredKeys').value;
+      const reqList = reqStr.split(',').map(s => s.trim()).filter(Boolean);
+
+      let rules = {};
+      try {
+        rules = JSON.parse(document.getElementById('typeRules').value || '{}');
+      } catch (err) {
+        showToast('Invalid JSON in validation rules!');
+        return;
+      }
+
+      currentReport = runDiagnosticsEngine(content, reqList, rules);
+      renderReportUI(currentReport);
+    }
+
+    function renderReportUI(report) {
+      // Score Circle Gauge
+      const circumference = 2 * Math.PI * 45; // 282.74
+      const offset = circumference - (report.healthScore / 100) * circumference;
+      const gaugeFill = document.getElementById('gaugeFill');
+      gaugeFill.style.strokeDashoffset = offset;
+      gaugeFill.style.stroke = report.color;
+
+      document.getElementById('scoreNum').textContent = report.healthScore;
+      document.getElementById('scoreNum').style.color = report.color;
+      document.getElementById('scoreGrade').textContent = `${report.grade} · ${report.label}`;
+      document.getElementById('scoreGrade').style.color = report.color;
+
+      // Stats
+      document.getElementById('statVars').textContent = report.totalVars;
+      document.getElementById('statPassed').textContent = report.passed;
+      document.getElementById('statWarnings').textContent = report.warnings;
+      document.getElementById('statErrors').textContent = report.errors;
+
+      // Filter Counts
+      document.getElementById('countAll').textContent = report.findings.length;
+      document.getElementById('countErrors').textContent = report.errors;
+      document.getElementById('countWarnings').textContent = report.warnings;
+      document.getElementById('countPass').textContent = report.passed;
+
+      // Render Findings
+      renderFilteredFindings();
+
+      // Fixes
+      const fixesBox = document.getElementById('fixesContainer');
+      const fixesList = document.getElementById('fixesList');
+      if (report.suggestedFixes.length > 0) {
+        fixesBox.style.display = 'block';
+        fixesList.innerHTML = report.suggestedFixes.map(f => `<li>${escapeHtml(f)}</li>`).join('');
+      } else {
+        fixesBox.style.display = 'none';
+      }
+
+      // Breakdown table
+      const tbody = document.getElementById('breakdownTbody');
+      tbody.innerHTML = `
+        <tr>
+          <td>Errors</td>
+          <td>${report.scoreBreakdown.errors.count}</td>
+          <td>-15 pts (cap -60)</td>
+          <td class="num" style="color: var(--red);">${report.scoreBreakdown.errors.deduction}</td>
+        </tr>
+        <tr>
+          <td>Warnings</td>
+          <td>${report.scoreBreakdown.warnings.count}</td>
+          <td>-5 pts (cap -25)</td>
+          <td class="num" style="color: var(--yellow);">${report.scoreBreakdown.warnings.deduction}</td>
+        </tr>
+        <tr>
+          <td>Security Findings</td>
+          <td>${report.scoreBreakdown.security.count}</td>
+          <td>-10 pts (cap -30)</td>
+          <td class="num" style="color: var(--purple);">${report.scoreBreakdown.security.deduction}</td>
+        </tr>
+        <tr>
+          <td>Missing Required</td>
+          <td>${report.scoreBreakdown.missingRequired.count}</td>
+          <td>-10 pts (cap -20)</td>
+          <td class="num" style="color: var(--red);">${report.scoreBreakdown.missingRequired.deduction}</td>
+        </tr>
+        <tr style="font-weight: 700;">
+          <td colspan="3">Final Health Score</td>
+          <td class="num" style="color: ${report.color};">${report.healthScore}/100</td>
+        </tr>
+      `;
+    }
+
+    function renderFilteredFindings() {
+      if (!currentReport) return;
+      const container = document.getElementById('findingsList');
+
+      const filtered = currentReport.findings.filter(f => {
+        if (currentFilter === 'all') return true;
+        return f.severity === currentFilter;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<p style="color: var(--text-dim); padding: 1rem 0; font-size: 0.85rem;">No findings matching the filter.</p>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(f => `
+        <div class="finding-item ${f.severity}">
+          <span class="finding-badge badge-${f.severity}">${f.severity}</span>
+          <div class="finding-body">
+            <div class="finding-meta">
+              <span class="finding-key">${escapeHtml(f.key || 'File')}</span>
+              ${f.line ? `<span class="finding-line">line ${f.line}</span>` : ''}
+              <span class="finding-code">${escapeHtml(f.code)}</span>
+            </div>
+            <div class="finding-msg">${escapeHtml(f.message)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function filterFindings(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-chip').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.toLowerCase().startsWith(filter));
+      });
+      renderFilteredFindings();
+    }
+
+    // Presets
+    function loadPreset(key) {
+      document.getElementById('envInput').value = PRESETS[key] || '';
+      document.querySelectorAll('.preset-toolbar .pill-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.toLowerCase().includes(key));
+      });
+      runDiagnostics();
+    }
+
+    // Tabs
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+      const targetPane = document.getElementById(`tab-${tabId}`);
+      if (targetPane) targetPane.classList.add('active');
+
+      const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
+      if (activeBtn) activeBtn.classList.add('active');
+
+      if (tabId === 'generator') {
+        document.getElementById('genSourceInput').value = document.getElementById('envInput').value;
+        generateExampleFromCurrent();
+      }
+    }
+
+    // Example Generator
+    function generateExampleFromCurrent() {
+      const source = document.getElementById('genSourceInput').value;
+      const parsed = parseEnv(source);
+
+      const lines = [];
+      parsed.entries.forEach(e => {
+        if (e.type === 'blank') {
+          lines.push('');
+        } else if (e.type === 'comment') {
+          lines.push(e.text);
+        } else if (e.type === 'variable') {
+          let placeholder = 'your_' + e.key.toLowerCase();
+          if (/port/i.test(e.key)) placeholder = '3000';
+          else if (/url/i.test(e.key)) placeholder = 'http://localhost:5432/dbname';
+          else if (/secret|token|key/i.test(e.key)) placeholder = 'your_' + e.key.toLowerCase() + '_here';
+          else if (/email/i.test(e.key)) placeholder = 'admin@example.com';
+          else if (/debug/i.test(e.key)) placeholder = 'false';
+          lines.push(`${e.key}=${placeholder}`);
+        } else if (e.type === 'malformed') {
+          lines.push(`# ${e.text} (malformed — please fix)`);
+        }
+      });
+
+      const res = lines.join('\n');
+      document.getElementById('exampleOutput').textContent = res;
+    }
+
+    function copyExampleOutput() {
+      const text = document.getElementById('exampleOutput').textContent;
+      navigator.clipboard.writeText(text).then(() => showToast('Copied .env.example!'));
+    }
+
+    function downloadExampleFile() {
+      const text = document.getElementById('exampleOutput').textContent;
+      downloadFile('.env.example', text, 'text/plain');
+    }
+
+    // Diff / Comparator
+    function runComparison() {
+      const baseContent = document.getElementById('compareBase').value;
+      const targetContent = document.getElementById('compareTarget').value;
+
+      const base = parseEnv(baseContent);
+      const target = parseEnv(targetContent);
+
+      const baseKeys = new Set(base.keys);
+      const targetKeys = new Set(target.keys);
+
+      const missingInTarget = base.keys.filter(k => !targetKeys.has(k));
+      const extraInTarget = target.keys.filter(k => !baseKeys.has(k));
+
+      const container = document.getElementById('compareResults');
+      const items = [];
+
+      missingInTarget.forEach(k => {
+        items.push(`
+          <div class="finding-item error">
+            <span class="finding-badge badge-error">Missing</span>
+            <div class="finding-body">
+              <div class="finding-meta"><strong style="color:#fff;">${escapeHtml(k)}</strong></div>
+              <div class="finding-msg">${escapeHtml(k)} is present in Base but MISSING from Target file</div>
+            </div>
+          </div>
+        `);
+      });
+
+      extraInTarget.forEach(k => {
+        items.push(`
+          <div class="finding-item warning">
+            <span class="finding-badge badge-warning">Extra</span>
+            <div class="finding-body">
+              <div class="finding-meta"><strong style="color:#fff;">${escapeHtml(k)}</strong></div>
+              <div class="finding-msg">${escapeHtml(k)} is present in Target but not in Base file</div>
+            </div>
+          </div>
+        `);
+      });
+
+      base.keys.filter(k => targetKeys.has(k)).forEach(k => {
+        items.push(`
+          <div class="finding-item pass">
+            <span class="finding-badge badge-pass">Match</span>
+            <div class="finding-body">
+              <div class="finding-meta"><strong style="color:#fff;">${escapeHtml(k)}</strong></div>
+              <div class="finding-msg">${escapeHtml(k)} is defined in both environment files</div>
+            </div>
+          </div>
+        `);
+      });
+
+      container.innerHTML = items.length ? items.join('') : '<p style="color:var(--text-dim);">No differences found.</p>';
+    }
+
+    // File Upload Handler
+    function handleFileUpload(evt) {
+      const file = evt.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('envInput').value = e.target.result;
+        runDiagnostics();
+        showToast(`Loaded ${file.name}`);
+      };
+      reader.readAsText(file);
+    }
+
+    // Exports
+    function copyReportJSON() {
+      if (!currentReport) return;
+      const jsonStr = JSON.stringify(currentReport, null, 2);
+      navigator.clipboard.writeText(jsonStr).then(() => showToast('Copied JSON report!'));
+    }
+
+    function copyTerminalReport() {
+      if (!currentReport) return;
+      let text = `╔══════════════════════════════════════════════╗\n║ 🩺 ENV DOCTOR DIAGNOSTIC REPORT             ║\n╚══════════════════════════════════════════════╝\n`;
+      text += `Health Score: ${currentReport.healthScore}/100 [${currentReport.grade}] ${currentReport.label}\n`;
+      text += `Total Variables: ${currentReport.totalVars} | Passed: ${currentReport.passed} | Warnings: ${currentReport.warnings} | Errors: ${currentReport.errors}\n\n`;
+      text += `Findings:\n`;
+      currentReport.findings.forEach(f => {
+        const symbol = f.severity === 'error' ? '✗' : f.severity === 'warning' ? '⚠' : '✓';
+        text += `  ${symbol} [${f.severity.toUpperCase()}] ${f.key || 'File'}: ${f.message}\n`;
+      });
+      if (currentReport.suggestedFixes.length) {
+        text += `\nSuggested Fixes:\n`;
+        currentReport.suggestedFixes.forEach((fix, i) => {
+          text += `  ${i + 1}. ${fix}\n`;
+        });
+      }
+      navigator.clipboard.writeText(text).then(() => showToast('Copied terminal output!'));
+    }
+
+    function downloadHTMLReport() {
+      if (!currentReport) return;
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>EnvDoctor Report</title><style>body{font-family:sans-serif;background:#0f172a;color:#e2e8f0;padding:2rem;}table{width:100%;border-collapse:collapse;}th,td{padding:8px;border-bottom:1px solid #334155;text-align:left;}</style></head><body><h1>🩺 EnvDoctor Report</h1><p>Health Score: <strong>${currentReport.healthScore}/100 [${currentReport.grade}]</strong></p><h2>Findings</h2><table><tr><th>Severity</th><th>Key</th><th>Message</th></tr>${currentReport.findings.map(f=>`<tr><td>${f.severity}</td><td>${f.key||''}</td><td>${f.message}</td></tr>`).join('')}</table></body></html>`;
+      downloadFile('env-doctor-report.html', html, 'text/html');
+    }
+
+    function downloadFile(name, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2200);
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Auto-initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      loadPreset('sample');
+      // Real-time debounced update on editor typing
+      let timeout = null;
+      document.getElementById('envInput').addEventListener('input', () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(runDiagnostics, 250);
+      });
+    });
+  </script>
+</body>
+</html>
